@@ -31,6 +31,7 @@ function copyRequestHeaders(request: NextRequest) {
   headers.delete("host");
   headers.delete("connection");
   headers.delete("content-length");
+  headers.delete("accept-encoding");
 
   return headers;
 }
@@ -54,7 +55,14 @@ async function proxy(request: NextRequest, path: string[]) {
   const upstreamSetCookies = extractSetCookies(upstreamResponse.headers);
 
   upstreamResponse.headers.forEach((value, key) => {
-    if (key.toLowerCase() === "set-cookie") {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey === "set-cookie" ||
+      lowerKey === "content-length" ||
+      lowerKey === "content-encoding" ||
+      lowerKey === "transfer-encoding" ||
+      lowerKey === "connection"
+    ) {
       return;
     }
 
@@ -65,7 +73,10 @@ async function proxy(request: NextRequest, path: string[]) {
     responseHeaders.append("set-cookie", cookie);
   });
 
-  return new NextResponse(upstreamResponse.body, {
+  const responseBody =
+    request.method === "HEAD" ? null : await upstreamResponse.arrayBuffer();
+
+  return new NextResponse(responseBody, {
     status: upstreamResponse.status,
     headers: responseHeaders,
   });
