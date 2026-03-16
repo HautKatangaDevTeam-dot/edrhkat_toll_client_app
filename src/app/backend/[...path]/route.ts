@@ -4,6 +4,22 @@ const API_PROXY_TARGET = (
   process.env.API_PROXY_TARGET ?? "http://172.20.10.6:3001"
 ).replace(/\/$/, "");
 
+function extractSetCookies(headers: Headers) {
+  if (typeof headers.getSetCookie === "function") {
+    const cookies = headers.getSetCookie();
+    if (cookies.length > 0) {
+      return cookies;
+    }
+  }
+
+  const rawSetCookie = headers.get("set-cookie");
+  if (!rawSetCookie) {
+    return [];
+  }
+
+  return rawSetCookie.split(/,(?=\s*[^;,\s]+=)/);
+}
+
 function buildUpstreamUrl(path: string[], search: string) {
   const joinedPath = path.join("/");
   return `${API_PROXY_TARGET}/${joinedPath}${search}`;
@@ -35,10 +51,7 @@ async function proxy(request: NextRequest, path: string[]) {
   );
 
   const responseHeaders = new Headers();
-  const upstreamSetCookies =
-    typeof upstreamResponse.headers.getSetCookie === "function"
-      ? upstreamResponse.headers.getSetCookie()
-      : [];
+  const upstreamSetCookies = extractSetCookies(upstreamResponse.headers);
 
   upstreamResponse.headers.forEach((value, key) => {
     if (key.toLowerCase() === "set-cookie") {
