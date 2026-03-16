@@ -1,0 +1,16 @@
+{
+  "folders": [
+    {
+      "path": "../..",
+    },
+    {
+      "path": "../../../edrhkat_toll_server_app",
+    },
+    {
+      "path": "../../../edrhkat_toll_pos_app",
+    },
+  ],
+  "settings": {
+    "chatgpt.openOnStartup": true,
+  },
+}
