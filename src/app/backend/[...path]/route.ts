@@ -35,13 +35,21 @@ async function proxy(request: NextRequest, path: string[]) {
   );
 
   const responseHeaders = new Headers();
+  const upstreamSetCookies =
+    typeof upstreamResponse.headers.getSetCookie === "function"
+      ? upstreamResponse.headers.getSetCookie()
+      : [];
+
   upstreamResponse.headers.forEach((value, key) => {
     if (key.toLowerCase() === "set-cookie") {
-      responseHeaders.append(key, value);
       return;
     }
 
     responseHeaders.set(key, value);
+  });
+
+  upstreamSetCookies.forEach((cookie) => {
+    responseHeaders.append("set-cookie", cookie);
   });
 
   return new NextResponse(upstreamResponse.body, {
