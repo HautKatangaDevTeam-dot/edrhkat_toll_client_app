@@ -83,11 +83,11 @@ export default function AuthPage() {
   })();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+    <div className="relative min-h-dvh overflow-x-hidden bg-background text-foreground">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.16),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.28),transparent_34%)] dark:bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.18),transparent_22%),linear-gradient(180deg,rgba(2,6,23,0.24),transparent_34%)]" />
       <div className="absolute left-1/2 top-20 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl dark:bg-primary/15" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center px-6 py-10">
+      <div className="relative mx-auto flex min-h-dvh max-w-6xl items-start justify-center px-4 py-6 sm:px-6 sm:py-10 lg:items-center">
         <Card className="w-full max-w-5xl border-border/80 bg-card/95 shadow-2xl shadow-primary/10 backdrop-blur">
           <CardContent className="p-3 sm:p-4">
             <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">

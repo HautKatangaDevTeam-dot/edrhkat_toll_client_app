@@ -65,7 +65,7 @@ export function AppShell({
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col overflow-hidden bg-background text-foreground md:h-screen md:min-h-0 md:flex-row">
       {/* Backdrop for mobile */}
       {mobileOpen && (
         <div
