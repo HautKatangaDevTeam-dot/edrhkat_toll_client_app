@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   title: "Console Péage EDRHKAT",
   description:
     "Console de peage EDRHKAT pour la supervision des postes, lots de recus, transactions et rapports.",
+  icons: {
+    icon: [
+      { url: "/apple-icon.png", type: "image/png", sizes: "180x180" },
+    ],
+    shortcut: [{ url: "/apple-icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 const themeInitScript = `
@@ -47,6 +54,9 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        <link rel="icon" type="image/png" sizes="180x180" href="/apple-icon.png" />
+        <link rel="shortcut icon" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body

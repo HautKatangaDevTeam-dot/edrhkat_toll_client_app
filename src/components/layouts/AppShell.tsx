@@ -11,6 +11,8 @@ import {
   ReceiptText,
   BarChart3,
   Users,
+  Smartphone,
+  Siren,
   PanelLeftClose,
   PanelLeftOpen,
   CarFront,
@@ -34,6 +36,8 @@ const navItems: NavItem[] = [
   { label: "Lots de recus", href: "/receipt-batches", icon: ReceiptText },
   { label: "Recherche recu", href: "/receipt-lookup", icon: Search },
   { label: "Transactions", href: "/transactions", icon: CarFront },
+  { label: "POS", href: "/pos-devices", icon: Smartphone },
+  { label: "Incidents", href: "/monitoring", icon: Siren },
   { label: "Rapports", href: "/reports", icon: BarChart3 },
   { label: "Utilisateurs", href: "/users", icon: Users },
 ];

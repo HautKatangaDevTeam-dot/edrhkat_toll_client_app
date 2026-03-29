@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/http";
+import { formatCompactNumber } from "@/lib/number-format";
 import { cn } from "@/lib/utils";
 import { transactionService } from "@/services/transactionService";
 import { logoutUser, refreshSession } from "@/state/features/auth/authSlice";
@@ -139,10 +140,7 @@ export default function TransactionsPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const formatAmount = (value: number | null | undefined) =>
-    (value ?? 0).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    formatCompactNumber(value);
 
   const paymentBadge = (mode: TollPaymentMode) => {
     const styles: Record<TollPaymentMode, string> = {

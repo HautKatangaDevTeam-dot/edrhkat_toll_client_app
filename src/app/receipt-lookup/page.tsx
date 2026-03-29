@@ -11,13 +11,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/http";
+import { formatCompactUsd } from "@/lib/number-format";
 import { receiptService } from "@/services/receiptService";
 import { logoutUser, refreshSession } from "@/state/features/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/state/hooks";
 import type { Receipt, ReceiptEvent } from "@/types/receipt";
 
-const amountFmt = (value: number) =>
-  `${value.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD`;
+const amountFmt = (value: number) => formatCompactUsd(value);
 
 function ReceiptLookupContent() {
   const dispatch = useAppDispatch();

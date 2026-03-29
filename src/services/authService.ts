@@ -8,6 +8,7 @@ import type {
   RefreshResponse,
   RegisterRequest,
   RegisterResponse,
+  ResetPasswordResponse,
   UsersListResponse,
 } from "@/types/auth";
 
@@ -54,6 +55,14 @@ export const authService = {
     return apiRequest<UsersListResponse>({
       path: url.toString(),
       method: "GET",
+      accessToken,
+    });
+  },
+  resetPassword(accessToken: string, userId: string) {
+    return apiRequest<ResetPasswordResponse>({
+      path: buildApiUrl(`/api/auth/users/${userId}/reset-password`),
+      method: "POST",
+      body: {},
       accessToken,
     });
   },

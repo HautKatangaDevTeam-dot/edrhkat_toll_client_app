@@ -23,15 +23,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatCompactUsd } from "@/lib/number-format";
 import { ApiError } from "@/lib/http";
 import { logoutUser, refreshSession } from "@/state/features/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/state/hooks";
 import { dashboardService } from "@/services/dashboardService";
+import { monitoringService } from "@/services/monitoringService";
+import { posDeviceService } from "@/services/posDeviceService";
 import type { DashboardSummary, RevenueTimeseries } from "@/types/dashboard";
+import type { HealthStatusResponse, MonitoringIncident } from "@/types/monitoring";
+import type { PosDeviceMonitor } from "@/types/pos-device";
 
-const DAY_OPTIONS = [7, 14, 30, 60, 90];
+const DAY_OPTIONS = ["ALL", 7, 14, 30, 60, 90] as const;
 const TIMESERIES_DAY_OPTIONS = [7, 14, 30, 60, 90, 120, 180];
 const cardBase = "border-border/70";
+const DEVICE_ALERT_THRESHOLD_MINUTES = 60;
+const MONITORING_POLL_INTERVAL_MS = 30000;
+type SummaryDayOption = (typeof DAY_OPTIONS)[number];
+
+const isSummaryDayOption = (value: string): value is `${Exclude<SummaryDayOption, "ALL">}` =>
+  DAY_OPTIONS.some((option) => option !== "ALL" && String(option) === value);
 
 export default function Home() {
   const dispatch = useAppDispatch();
@@ -39,13 +50,16 @@ export default function Home() {
     (state) => state.auth
   );
 
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState<SummaryDayOption>("ALL");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [timeseriesDays, setTimeseriesDays] = useState(30);
   const [granularity, setGranularity] = useState<"day" | "week">("day");
   const [revenueSeries, setRevenueSeries] = useState<RevenueTimeseries | null>(null);
   const [isLoadingSeries, setIsLoadingSeries] = useState(false);
+  const [staleDevices, setStaleDevices] = useState<PosDeviceMonitor[]>([]);
+  const [activeIncidents, setActiveIncidents] = useState<MonitoringIncident[]>([]);
+  const [health, setHealth] = useState<HealthStatusResponse | null>(null);
 
   const handleLogout = () => {
     if (accessToken) {
@@ -55,7 +69,10 @@ export default function Home() {
 
   const loadSummary = useCallback(
     async (token: string) => {
-      const res = await dashboardService.summary(token, days);
+      const res = await dashboardService.summary(
+        token,
+        days === "ALL" ? null : days
+      );
       setSummary(res.data);
     },
     [days]
@@ -120,6 +137,69 @@ export default function Home() {
     }
   }, [accessToken, dispatch, loadSeries, refreshToken]);
 
+  const fetchStaleDevices = useCallback(async () => {
+    if (!accessToken) return;
+
+    const load = async (token: string) => {
+      const res = await posDeviceService.list(token, DEVICE_ALERT_THRESHOLD_MINUTES);
+      setStaleDevices((res.data ?? []).filter((device) => device.stale));
+    };
+
+    try {
+      await load(accessToken);
+    } catch (err) {
+      const isApiError = err instanceof ApiError;
+      if (isApiError && err.status === 401 && refreshToken) {
+        try {
+          const refreshed = await dispatch(refreshSession()).unwrap();
+          if (refreshed.accessToken) {
+            await load(refreshed.accessToken);
+          }
+        } catch {
+          // ignore dashboard sidecar failure
+        }
+      }
+    }
+  }, [accessToken, dispatch, refreshToken]);
+
+  const fetchMonitoring = useCallback(async () => {
+    if (!accessToken) return;
+
+    const load = async (token: string) => {
+      const [incidentResult, healthResult] = await Promise.allSettled([
+        monitoringService.listIncidents(token, { status: "active", limit: 4 }),
+        monitoringService.health(),
+      ]);
+      if (incidentResult.status === "rejected") {
+        throw incidentResult.reason;
+      }
+      if (incidentResult.status === "fulfilled") {
+        setActiveIncidents(incidentResult.value.data ?? []);
+      }
+      if (healthResult.status === "fulfilled") {
+        setHealth(healthResult.value);
+      } else {
+        setHealth(null);
+      }
+    };
+
+    try {
+      await load(accessToken);
+    } catch (err) {
+      const isApiError = err instanceof ApiError;
+      if (isApiError && err.status === 401 && refreshToken) {
+        try {
+          const refreshed = await dispatch(refreshSession()).unwrap();
+          if (refreshed.accessToken) {
+            await load(refreshed.accessToken);
+          }
+        } catch {
+          setActiveIncidents([]);
+        }
+      }
+    }
+  }, [accessToken, dispatch, refreshToken]);
+
   useEffect(() => {
     fetchSummary();
   }, [fetchSummary]);
@@ -127,9 +207,20 @@ export default function Home() {
   useEffect(() => {
     fetchSeries();
   }, [fetchSeries]);
+  useEffect(() => {
+    fetchStaleDevices();
+  }, [fetchStaleDevices]);
+  useEffect(() => {
+    fetchMonitoring();
+  }, [fetchMonitoring]);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void fetchMonitoring();
+    }, MONITORING_POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [fetchMonitoring]);
   const numberFmt = (n?: number) => (typeof n === "number" ? n.toLocaleString() : "0");
-  const amountFmt = (n?: number) =>
-    typeof n === "number" ? `${n.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD` : "0 USD";
+  const amountFmt = (n?: number) => formatCompactUsd(n);
 
   return (
     <ProtectedLayout>
@@ -141,22 +232,82 @@ export default function Home() {
         onLogout={handleLogout}
       >
         <div className="flex flex-col gap-4">
+          {!health && (
+            <Card className="border-rose-500/30 bg-rose-500/5">
+              <CardContent className="flex flex-col gap-2 pt-6 text-sm">
+                <div className="font-medium text-rose-900 dark:text-rose-100">
+                  Sante serveur en alerte
+                </div>
+                <div className="text-rose-800 dark:text-rose-200">
+                  Le controle de sante du serveur est indisponible. Controlez l&apos;API avant ouverture du poste.
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeIncidents.length > 0 && (
+            <Card className="border-rose-500/30 bg-rose-500/5">
+              <CardContent className="flex flex-col gap-3 pt-6 text-sm">
+                <div className="flex items-center gap-2 font-medium text-rose-900 dark:text-rose-100">
+                  <RefreshCw size={16} />
+                  {activeIncidents.length} incident(s) serveur actif(s)
+                </div>
+                <div className="flex flex-col gap-2">
+                  {activeIncidents.map((incident) => (
+                    <div
+                      key={incident.id}
+                      className="rounded-xl border border-rose-500/20 px-3 py-2 text-xs text-rose-800 dark:text-rose-100"
+                    >
+                      <div className="font-semibold">{incident.message}</div>
+                      <div className="mt-1 opacity-80">
+                        {incident.method ?? "?"} {incident.normalized_path ?? "n/a"} · {incident.occurrence_count} fois
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {staleDevices.length > 0 && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="flex flex-col gap-3 pt-6 text-sm">
+                <div className="flex items-center gap-2 font-medium text-amber-900 dark:text-amber-100">
+                  <RefreshCw size={16} />
+                  {staleDevices.length} POS non vus recemment
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {staleDevices.slice(0, 4).map((device) => (
+                    <span
+                      key={device.id}
+                      className="inline-flex items-center rounded-full border border-amber-500/30 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:text-amber-100"
+                    >
+                      {device.label || "POS"} · {device.assignedPost || device.contactPhone || "Poste ?"}
+                    </span>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <FilterBar className="md:grid-cols-[12rem_minmax(12rem,16rem)_auto] md:items-center">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 Periode
               </p>
-              <Select
-                value={String(days)}
-                onValueChange={(val) => setDays(Number(val))}
-              >
+                <Select
+                  value={String(days)}
+                  onValueChange={(val) =>
+                    setDays(val === "ALL" ? "ALL" : isSummaryDayOption(val) ? Number(val) as Exclude<SummaryDayOption, "ALL"> : "ALL")
+                  }
+                >
                 <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {DAY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={String(opt)}>
-                      {opt} jours
+                    <SelectItem key={String(opt)} value={String(opt)}>
+                      {opt === "ALL" ? "Toutes" : `${opt} jours`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -168,7 +319,9 @@ export default function Home() {
               </p>
               <div className="flex h-9 items-center rounded-2xl border border-input/80 bg-background/95 px-3.5 text-sm text-foreground whitespace-nowrap">
                 {summary
-                  ? `Depuis ${new Date(summary.since).toLocaleDateString()}`
+                  ? summary.since
+                    ? `Depuis ${new Date(summary.since).toLocaleDateString()}`
+                    : "Toutes les donnees"
                   : "En attente"}
               </div>
             </div>
@@ -305,7 +458,7 @@ export default function Home() {
                       className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
                     >
                       <div className="font-semibold text-foreground">
-                        {c.companyName || "Societe inconnue"}
+                        {c.companyName || c.companyId}
                       </div>
                       <div className="flex items-center gap-3 text-xs font-semibold">
                         <span className="rounded-full border border-border px-2 py-1 text-foreground/80">

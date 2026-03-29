@@ -25,10 +25,13 @@ npm install
 ```
 
 2) Configure environment  
-Set the API base URL (defaults to `http://172.20.10.6:3001` in `src/config/api.ts`):
+For production, keep the browser-facing base URL on the local proxy path and point the proxy to your backend API:
 ```bash
-export NEXT_PUBLIC_API_BASE_URL="https://your-api-host"
+export NEXT_PUBLIC_API_BASE_URL="/backend"
+export API_PROXY_TARGET="https://your-api-host"
 ```
+
+`NEXT_PUBLIC_API_BASE_URL` defaults to `/backend` in [`src/config/api.ts`](/Users/gloirempanga/Projects/edrhkat_toll_client_app/src/config/api.ts), and the proxy route reads `API_PROXY_TARGET` from [`src/app/backend/[...path]/route.ts`](/Users/gloirempanga/Projects/edrhkat_toll_client_app/src/app/backend/[...path]/route.ts).
 
 3) Run the dev server  
 ```bash
@@ -76,4 +79,5 @@ npm run lint
 - Run the dev server as your normal user, not with `sudo`.
 - If Turbopack crashes or stale chunks appear, clear `.next` and use the webpack dev server: `npm run dev`.
 - Turbopack remains available as an opt-in path via `npm run dev:turbo`.
-- Ensure your API is reachable at the configured `NEXT_PUBLIC_API_BASE_URL`; auth endpoints are defined in `src/config/api.ts`.
+- In production, set `API_PROXY_TARGET` explicitly. If it is missing, the proxy falls back to `http://localhost:3001`.
+- Ensure your API is reachable through the configured proxy path; auth endpoints are defined in `src/config/api.ts`.

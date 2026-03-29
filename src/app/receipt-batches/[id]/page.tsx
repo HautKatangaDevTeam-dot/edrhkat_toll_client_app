@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ApiError } from "@/lib/http";
+import { formatCompactUsd } from "@/lib/number-format";
 import { receiptService } from "@/services/receiptService";
 import { logoutUser, refreshSession } from "@/state/features/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/state/hooks";
@@ -40,8 +41,7 @@ import type {
 
 const PAGE_SIZE = 20;
 
-const amountFmt = (value: number) =>
-  `${value.toLocaleString(undefined, { minimumFractionDigits: 2 })} USD`;
+const amountFmt = (value: number) => formatCompactUsd(value);
 
 export default function ReceiptBatchDetailPage() {
   const params = useParams<{ id?: string }>();

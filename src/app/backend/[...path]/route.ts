@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const API_PROXY_TARGET = (
-  process.env.API_PROXY_TARGET ?? "http://172.20.10.6:3001"
+  process.env.API_PROXY_TARGET ?? "http://localhost:3001"
 ).replace(/\/$/, "");
 
 function extractSetCookies(headers: Headers) {
@@ -37,19 +37,33 @@ function copyRequestHeaders(request: NextRequest) {
 }
 
 async function proxy(request: NextRequest, path: string[]) {
-  const upstreamResponse = await fetch(
-    buildUpstreamUrl(path, request.nextUrl.search),
-    {
-      method: request.method,
-      headers: copyRequestHeaders(request),
-      body:
-        request.method === "GET" || request.method === "HEAD"
-          ? undefined
-          : await request.text(),
-      redirect: "manual",
-      cache: "no-store",
-    }
-  );
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(
+      buildUpstreamUrl(path, request.nextUrl.search),
+      {
+        method: request.method,
+        headers: copyRequestHeaders(request),
+        body:
+          request.method === "GET" || request.method === "HEAD"
+            ? undefined
+            : await request.text(),
+        redirect: "manual",
+        cache: "no-store",
+      }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "API server unreachable. Verify API_PROXY_TARGET and backend availability.",
+        code: "API_PROXY_UNREACHABLE",
+        target: API_PROXY_TARGET,
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 502 }
+    );
+  }
 
   const responseHeaders = new Headers();
   const upstreamSetCookies = extractSetCookies(upstreamResponse.headers);

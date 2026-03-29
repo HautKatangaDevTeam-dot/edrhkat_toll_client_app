@@ -5,6 +5,7 @@ import {
   Eye,
   EyeOff,
   Plus,
+  RotateCcw,
   Search,
 } from "lucide-react";
 
@@ -87,6 +88,7 @@ export default function UsersPage() {
   const [postFilter, setPostFilter] = useState<AuthPost | "all">("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [resettingUserId, setResettingUserId] = useState<string | null>(null);
 
   const handleLogout = () => {
     if (accessToken) {
@@ -182,6 +184,51 @@ export default function UsersPage() {
       notify.fromError(err, "Echec de la creation de l'utilisateur.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResetPassword(target: UserWithMeta) {
+    const confirmed = window.confirm(
+      `Reinitialiser le mot de passe de ${target.username} a Tabc@123 ?`
+    );
+    if (!confirmed) return;
+
+    const tokenToUse = accessToken;
+    if (!tokenToUse) {
+      notify.error("Session expiree. Veuillez vous reconnecter.");
+      return;
+    }
+
+    setResettingUserId(target.id);
+
+    const submit = async (token: string) =>
+      authService.resetPassword(token, target.id);
+
+    try {
+      let result;
+      try {
+        result = await submit(tokenToUse);
+      } catch (err) {
+        const isApiError = err instanceof ApiError;
+        if (isApiError && err.status === 401 && refreshToken) {
+          const refreshed = await dispatch(refreshSession()).unwrap();
+          if (!refreshed.accessToken) {
+            return;
+          }
+          result = await submit(refreshed.accessToken);
+        } else {
+          throw err;
+        }
+      }
+
+      notify.success(
+        `Mot de passe reinitialise pour ${target.username}: ${result.defaultPassword}`
+      );
+      await fetchUsers();
+    } catch (err) {
+      notify.fromError(err, "Impossible de reinitialiser le mot de passe.");
+    } finally {
+      setResettingUserId(null);
     }
   }
 
@@ -413,6 +460,7 @@ export default function UsersPage() {
                           <TableHead>Poste</TableHead>
                           <TableHead>Creation</TableHead>
                           <TableHead>Mise a jour</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -443,6 +491,21 @@ export default function UsersPage() {
                               {item.updatedAt
                                 ? new Date(item.updatedAt).toLocaleDateString()
                                 : "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-8"
+                                disabled={resettingUserId === item.id}
+                                onClick={() => handleResetPassword(item)}
+                              >
+                                <RotateCcw size={14} />
+                                {resettingUserId === item.id
+                                  ? "Reset..."
+                                  : "Reset mdp"}
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}

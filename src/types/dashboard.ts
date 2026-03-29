@@ -1,6 +1,6 @@
 export type DashboardSummary = {
-  rangeDays: number;
-  since: string;
+  rangeDays: number | null;
+  since: string | null;
   companies: { total: number; active: number; blocked: number };
   transactions: {
     total: number;

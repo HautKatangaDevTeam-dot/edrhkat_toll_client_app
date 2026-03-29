@@ -3,9 +3,11 @@ import { buildApiUrlObject } from "@/config/api";
 import type { DashboardSummaryResponse, RevenueTimeseriesResponse } from "@/types/dashboard";
 
 export const dashboardService = {
-  summary(accessToken: string, days: number) {
+  summary(accessToken: string, days?: number | null) {
     const url = buildApiUrlObject("/api/dashboard/summary");
-    url.searchParams.set("days", String(days));
+    if (typeof days === "number" && days > 0) {
+      url.searchParams.set("days", String(days));
+    }
 
     return apiRequest<DashboardSummaryResponse>({
       path: url.toString(),

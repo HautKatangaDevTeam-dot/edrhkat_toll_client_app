@@ -9,6 +9,34 @@ type NotifyOptions = {
 
 const DEFAULT_DURATION = 4000;
 const ERROR_DURATION = 5500;
+const SESSION_EXPIRED_TOAST_ID = "auth-session-expired";
+
+const isSessionExpiredError = (error: unknown, fallback?: string) => {
+  if (error instanceof ApiError) {
+    return (
+      error.status === 401 ||
+      error.code === "AUTH_SESSION_EXPIRED" ||
+      error.code === "AUTH_UNAUTHORIZED"
+    );
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return message.includes("session expiree") || message.includes("session expirée");
+  }
+
+  if (typeof error === "string") {
+    const message = error.toLowerCase();
+    return message.includes("session expiree") || message.includes("session expirée");
+  }
+
+  if (fallback) {
+    const message = fallback.toLowerCase();
+    return message.includes("session expiree") || message.includes("session expirée");
+  }
+
+  return false;
+};
 
 const toMessage = (error: unknown, fallback: string) => {
   if (error instanceof ApiError) {
@@ -36,6 +64,7 @@ export const notify = {
 
   error(message: string, options?: NotifyOptions) {
     toast.error(message, {
+      id: isSessionExpiredError(message) ? SESSION_EXPIRED_TOAST_ID : undefined,
       description: options?.description,
       duration: options?.duration ?? ERROR_DURATION,
     });
@@ -57,6 +86,12 @@ export const notify = {
 
   fromError(error: unknown, fallback: string, options?: NotifyOptions) {
     const message = toMessage(error, fallback);
-    this.error(message, options);
+    toast.error(message, {
+      id: isSessionExpiredError(error, fallback)
+        ? SESSION_EXPIRED_TOAST_ID
+        : undefined,
+      description: options?.description,
+      duration: options?.duration ?? ERROR_DURATION,
+    });
   },
 };

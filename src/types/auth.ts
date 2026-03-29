@@ -70,12 +70,20 @@ export type LogoutResponse = {
   success: boolean;
 };
 
+export type ResetPasswordResponse = {
+  success: boolean;
+  user: AuthUser;
+  defaultPassword: string;
+};
+
 export type AuthErrorCode =
   | "AUTH_INVALID_CREDENTIALS"
   | "AUTH_SESSION_EXPIRED"
   | "AUTH_RATE_LIMITED"
   | "AUTH_UNAUTHORIZED"
   | "AUTH_USERNAME_EXISTS"
+  | "AUTH_USER_NOT_FOUND"
+  | "AUTH_PASSWORD_RESET_FAILED"
   | "VALIDATION_ERROR"
   | "INTERNAL_ERROR"
   | "ROUTE_NOT_FOUND";
