@@ -316,6 +316,7 @@ export default function UsersPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Mot de passe initial"
                         autoComplete="new-password"
+                        maxLength={72}
                         className="h-10 pr-12"
                       />
                       <button
@@ -331,6 +332,9 @@ export default function UsersPage() {
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Mot de passe libre, meme court, selon votre besoin terrain.
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-2">
