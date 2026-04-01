@@ -10,6 +10,14 @@ export type DashboardSummary = {
     topCompanies: Array<{ companyId: string; companyName: string | null; count: number; amount: number }>;
   };
   devices: { total: number; active: number; inactive: number };
+  recentConnections: Array<{
+    sessionId: string;
+    username: string;
+    role: string;
+    userPost: string;
+    clientType: string;
+    connectedAt: string;
+  }>;
 };
 
 export type DashboardSummaryResponse = {

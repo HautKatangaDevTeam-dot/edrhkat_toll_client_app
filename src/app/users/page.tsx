@@ -90,6 +90,24 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   const [resettingUserId, setResettingUserId] = useState<string | null>(null);
 
+  const resetCreateUserForm = useCallback(() => {
+    setUsername("");
+    setPassword("");
+    setRole("AGENT_TOLL");
+    setPost("KAMPEMBA");
+    setShowPassword(false);
+  }, []);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (!nextOpen) {
+        resetCreateUserForm();
+      }
+    },
+    [resetCreateUserForm]
+  );
+
   const handleLogout = () => {
     if (accessToken) {
       dispatch(logoutUser(accessToken));
@@ -173,10 +191,7 @@ export default function UsersPage() {
       }
 
       notify.success("Utilisateur cree avec succes.");
-      setUsername("");
-      setPassword("");
-      setRole("AGENT_TOLL");
-      setPost("KAMPEMBA");
+      resetCreateUserForm();
       setOpen(false);
       setPage(1);
       fetchUsers();
@@ -245,7 +260,7 @@ export default function UsersPage() {
           <div className="flex justify-end">
             <AppModal
               open={open}
-              onOpenChange={setOpen}
+              onOpenChange={handleOpenChange}
               size="lg"
               eyebrow="Administration"
               title="Nouvel utilisateur"
@@ -262,7 +277,7 @@ export default function UsersPage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setOpen(false)}
+                    onClick={() => handleOpenChange(false)}
                   >
                     Annuler
                   </Button>

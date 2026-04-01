@@ -65,6 +65,22 @@ export default function CompaniesPage() {
   const [billingMode, setBillingMode] = useState<BillingMode>("PAYG");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const resetCreateCompanyForm = useCallback(() => {
+    setName("");
+    setCode("");
+    setBillingMode("PAYG");
+  }, []);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (!nextOpen) {
+        resetCreateCompanyForm();
+      }
+    },
+    [resetCreateCompanyForm]
+  );
+
   const userMeta = useMemo(() => {
     if (!user) return undefined;
     return `${user.role} · ${user.post}`;
@@ -124,6 +140,7 @@ export default function CompaniesPage() {
         billing_mode: billingMode,
       });
       notify.success("Societe creee.");
+      resetCreateCompanyForm();
       setOpen(false);
       fetchCompanies();
     } catch {
@@ -158,7 +175,7 @@ export default function CompaniesPage() {
           <div className="flex justify-end">
             <AppModal
               open={open}
-              onOpenChange={setOpen}
+              onOpenChange={handleOpenChange}
               eyebrow="Creation"
               title="Creer une societe"
               description="Ajoutez un nouveau compte client avec son code interne et son mode de facturation."
@@ -171,7 +188,7 @@ export default function CompaniesPage() {
               }
               footer={
                 <>
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                  <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)}>
                     Annuler
                   </Button>
                   <Button

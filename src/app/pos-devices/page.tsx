@@ -57,6 +57,24 @@ export default function PosDevicesPage() {
   const [keys, setKeys] = useState<PosKeyRegistryEntry[]>([]);
   const [activeTab, setActiveTab] = useState<"devices" | "keys">("devices");
 
+  const resetDeviceEditor = useCallback(() => {
+    setEditing(null);
+    setLabel("");
+    setContactPhone("");
+    setAssignedPost("UNASSIGNED");
+    setIsActive(true);
+  }, []);
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setOpen(nextOpen);
+      if (!nextOpen) {
+        resetDeviceEditor();
+      }
+    },
+    [resetDeviceEditor]
+  );
+
   const handleLogout = () => {
     if (accessToken) {
       dispatch(logoutUser(accessToken));
@@ -181,8 +199,7 @@ export default function PosDevicesPage() {
     }
 
     notify.success("POS mis a jour.");
-    setOpen(false);
-    setEditing(null);
+    handleOpenChange(false);
     setIsSaving(false);
     loadDevices();
   }, [
@@ -191,6 +208,7 @@ export default function PosDevicesPage() {
     contactPhone,
     dispatch,
     editing,
+    handleOpenChange,
     isActive,
     label,
     loadDevices,
@@ -434,13 +452,13 @@ export default function PosDevicesPage() {
 
           <AppModal
             open={open}
-            onOpenChange={setOpen}
+            onOpenChange={handleOpenChange}
             eyebrow="POS"
             title={editing ? formatDeviceName(editing) : "Modifier le POS"}
             description="Renseignez l'identification du terminal pour le suivi terrain."
             footer={
               <>
-                <Button variant="ghost" onClick={() => setOpen(false)}>
+                <Button variant="ghost" onClick={() => handleOpenChange(false)}>
                   Annuler
                 </Button>
                 <Button onClick={saveDevice} disabled={isSaving}>
