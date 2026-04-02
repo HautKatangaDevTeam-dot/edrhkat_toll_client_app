@@ -66,6 +66,7 @@ export default function Home() {
   const { user, accessToken, refreshToken } = useAppSelector(
     (state) => state.auth
   );
+  const isFinancialSupervisor = user?.role === "SUPERVISEUR";
 
   const [days, setDays] = useState<SummaryDayOption>("ALL");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -228,17 +229,27 @@ export default function Home() {
     fetchSeries();
   }, [fetchSeries]);
   useEffect(() => {
+    if (isFinancialSupervisor) {
+      setStaleDevices([]);
+      return;
+    }
     fetchStaleDevices();
-  }, [fetchStaleDevices]);
+  }, [fetchStaleDevices, isFinancialSupervisor]);
   useEffect(() => {
+    if (isFinancialSupervisor) {
+      setActiveIncidents([]);
+      setHealth(null);
+      return;
+    }
     fetchMonitoring();
-  }, [fetchMonitoring]);
+  }, [fetchMonitoring, isFinancialSupervisor]);
   useEffect(() => {
+    if (isFinancialSupervisor) return;
     const timer = window.setInterval(() => {
       void fetchMonitoring();
     }, MONITORING_POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [fetchMonitoring]);
+  }, [fetchMonitoring, isFinancialSupervisor]);
   const numberFmt = (n?: number) => (typeof n === "number" ? n.toLocaleString() : "0");
   const amountFmt = (n?: number) => formatCompactUsd(n);
 
@@ -269,20 +280,24 @@ export default function Home() {
               >
                 Vue synthèse
               </Button>
-              <Button
-                variant={activeTab === "supervision" ? "default" : "outline"}
-                className="h-9 rounded-full px-4"
-                onClick={() => setActiveTab("supervision")}
-              >
-                Supervision
-              </Button>
-              <Button
-                variant={activeTab === "connections" ? "default" : "outline"}
-                className="h-9 rounded-full px-4"
-                onClick={() => setActiveTab("connections")}
-              >
-                Dernières connexions
-              </Button>
+              {!isFinancialSupervisor && (
+                <>
+                  <Button
+                    variant={activeTab === "supervision" ? "default" : "outline"}
+                    className="h-9 rounded-full px-4"
+                    onClick={() => setActiveTab("supervision")}
+                  >
+                    Supervision
+                  </Button>
+                  <Button
+                    variant={activeTab === "connections" ? "default" : "outline"}
+                    className="h-9 rounded-full px-4"
+                    onClick={() => setActiveTab("connections")}
+                  >
+                    Dernières connexions
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -350,45 +365,48 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Card className={cardBase}>
-                  <CardHeader className="pb-3">
-                    <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Sociétés
-                    </CardDescription>
-                    <CardTitle className="text-3xl font-semibold text-foreground">
-                      {numberFmt(summary?.companies.total)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center rounded-full border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
-                      Actives: {numberFmt(summary?.companies.active)}
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-rose-500/30 px-2 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300">
-                      Bloquées: {numberFmt(summary?.companies.blocked)}
-                    </span>
-                  </CardContent>
-                </Card>
+              <div className={cn("grid gap-4 sm:grid-cols-2", isFinancialSupervisor ? "xl:grid-cols-2" : "xl:grid-cols-4")}>
+                {!isFinancialSupervisor && (
+                  <>
+                    <Card className={cardBase}>
+                      <CardHeader className="pb-3">
+                        <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                          Sociétés
+                        </CardDescription>
+                        <CardTitle className="text-3xl font-semibold text-foreground">
+                          {numberFmt(summary?.companies.total)}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                          Actives: {numberFmt(summary?.companies.active)}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-rose-500/30 px-2 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                          Bloquées: {numberFmt(summary?.companies.blocked)}
+                        </span>
+                      </CardContent>
+                    </Card>
 
-                <Card className={cardBase}>
-                  <CardHeader className="pb-3">
-                    <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Équipements
-                    </CardDescription>
-                    <CardTitle className="text-3xl font-semibold text-foreground">
-                      {numberFmt(summary?.devices.total)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center rounded-full border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
-                      Actifs: {numberFmt(summary?.devices.active)}
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-border px-2 py-1 text-xs font-semibold text-foreground/80">
-                      Inactifs: {numberFmt(summary?.devices.inactive)}
-                    </span>
-                  </CardContent>
-                </Card>
-
+                    <Card className={cardBase}>
+                      <CardHeader className="pb-3">
+                        <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                          Équipements
+                        </CardDescription>
+                        <CardTitle className="text-3xl font-semibold text-foreground">
+                          {numberFmt(summary?.devices.total)}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full border border-emerald-500/30 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                          Actifs: {numberFmt(summary?.devices.active)}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-border px-2 py-1 text-xs font-semibold text-foreground/80">
+                          Inactifs: {numberFmt(summary?.devices.inactive)}
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
                 <Card className={cardBase}>
                   <CardHeader className="pb-3">
                     <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
@@ -421,30 +439,32 @@ export default function Home() {
                   </CardContent>
                 </Card>
 
-                <Card className={cardBase}>
-                  <CardHeader className="pb-3">
-                    <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-                      Vigilance terrain
-                    </CardDescription>
-                    <CardTitle className="text-3xl font-semibold text-foreground">
-                      {numberFmt(staleDevices.length + activeIncidents.length)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                      <span>POS silencieux</span>
-                      <span className="font-semibold text-foreground">
-                        {numberFmt(staleDevices.length)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                      <span>Incidents actifs</span>
-                      <span className="font-semibold text-foreground">
-                        {numberFmt(activeIncidents.length)}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
+                {!isFinancialSupervisor && (
+                  <Card className={cardBase}>
+                    <CardHeader className="pb-3">
+                      <CardDescription className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                        Vigilance terrain
+                      </CardDescription>
+                      <CardTitle className="text-3xl font-semibold text-foreground">
+                        {numberFmt(staleDevices.length + activeIncidents.length)}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                        <span>POS silencieux</span>
+                        <span className="font-semibold text-foreground">
+                          {numberFmt(staleDevices.length)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                        <span>Incidents actifs</span>
+                        <span className="font-semibold text-foreground">
+                          {numberFmt(activeIncidents.length)}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
 
               <Card className={cardBase}>
@@ -539,7 +559,7 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              <div className="grid gap-4 xl:grid-cols-2">
+              <div className={cn("grid gap-4", isFinancialSupervisor ? "xl:grid-cols-1" : "xl:grid-cols-2")}>
                 <ResourceSection
                   title="Top postes"
                   description="Volume et montants"
@@ -573,43 +593,45 @@ export default function Home() {
                   </CardContent>
                 </ResourceSection>
 
-                <ResourceSection
-                  title="Top sociétés"
-                  description="Volume et montants"
-                  className={cardBase}
-                >
-                  <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    {summary?.transactions.topCompanies.length ? (
-                      summary.transactions.topCompanies.slice(0, 5).map((c) => (
-                        <div
-                          key={c.companyId}
-                          className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                        >
-                          <div className="font-semibold text-foreground">
-                            {c.companyName || c.companyId}
+                {!isFinancialSupervisor && (
+                  <ResourceSection
+                    title="Top sociétés"
+                    description="Volume et montants"
+                    className={cardBase}
+                  >
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      {summary?.transactions.topCompanies.length ? (
+                        summary.transactions.topCompanies.slice(0, 5).map((c) => (
+                          <div
+                            key={c.companyId}
+                            className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                          >
+                            <div className="font-semibold text-foreground">
+                              {c.companyName || c.companyId}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs font-semibold">
+                              <span className="rounded-full border border-border px-2 py-1 text-foreground/80">
+                                {numberFmt(c.count)} tx
+                              </span>
+                              <span className="text-muted-foreground">
+                                {amountFmt(c.amount)}
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs font-semibold">
-                            <span className="rounded-full border border-border px-2 py-1 text-foreground/80">
-                              {numberFmt(c.count)} tx
-                            </span>
-                            <span className="text-muted-foreground">
-                              {amountFmt(c.amount)}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Aucune donnée société.
-                      </p>
-                    )}
-                  </CardContent>
-                </ResourceSection>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Aucune donnée société.
+                        </p>
+                      )}
+                    </CardContent>
+                  </ResourceSection>
+                )}
               </div>
             </div>
           )}
 
-          {activeTab === "connections" && (
+          {!isFinancialSupervisor && activeTab === "connections" && (
             <ResourceSection
               title="Dernières connexions"
               description="10 dernières sessions ouvertes sur le système"
@@ -658,7 +680,7 @@ export default function Home() {
             </ResourceSection>
           )}
 
-          {activeTab === "supervision" && (
+          {!isFinancialSupervisor && activeTab === "supervision" && (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
               <Card className={cn(cardBase, !health && "border-rose-500/30 bg-rose-500/5")}>
                 <CardHeader className="pb-3">

@@ -59,6 +59,11 @@ export type RegisterResponse = {
   user: AuthUser;
 };
 
+export type UpdateUserResponse = {
+  success: boolean;
+  user: AuthUser;
+};
+
 export type RefreshResponse = LoginResponse;
 
 export type MeResponse = {

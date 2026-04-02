@@ -23,6 +23,8 @@ import { useState } from "react";
 import { AppModal } from "@/components/admin/AppModal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAppSelector } from "@/state/hooks";
+import type { AuthRole } from "@/types/auth";
 
 type NavItem = {
   label: string;
@@ -41,6 +43,18 @@ const navItems: NavItem[] = [
   { label: "Rapports", href: "/reports", icon: BarChart3 },
   { label: "Utilisateurs", href: "/users", icon: Users },
 ];
+
+const navAccess: Record<string, AuthRole[]> = {
+  "/": ["ADMIN_SYSTEME", "SUPERVISEUR", "AGENT_BUREAU", "AGENT_TOLL"],
+  "/reports": ["ADMIN_SYSTEME", "SUPERVISEUR"],
+  "/companies": ["ADMIN_SYSTEME"],
+  "/receipt-batches": ["ADMIN_SYSTEME", "AGENT_BUREAU"],
+  "/receipt-lookup": ["ADMIN_SYSTEME", "AGENT_BUREAU", "AGENT_TOLL"],
+  "/transactions": ["ADMIN_SYSTEME"],
+  "/pos-devices": ["ADMIN_SYSTEME"],
+  "/monitoring": ["ADMIN_SYSTEME"],
+  "/users": ["ADMIN_SYSTEME"],
+};
 
 type Props = {
   children: React.ReactNode;
@@ -64,9 +78,14 @@ export function AppShell({
   contentWidth = "full",
 }: Props) {
   const pathname = usePathname();
+  const currentRole = useAppSelector((state) => state.auth.user?.role);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+  const visibleNavItems = navItems.filter((item) => {
+    if (!currentRole) return false;
+    return (navAccess[item.href] ?? []).includes(currentRole);
+  });
 
   return (
     <div className="flex min-h-dvh flex-col overflow-hidden bg-background text-foreground md:h-screen md:min-h-0 md:flex-row">
@@ -123,7 +142,7 @@ export function AppShell({
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active =
               item.href === "/"
                 ? pathname === item.href

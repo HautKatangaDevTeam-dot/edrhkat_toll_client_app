@@ -57,6 +57,7 @@ export default function ReportsPage() {
   const { user, accessToken, refreshToken } = useAppSelector(
     (state) => state.auth
   );
+  const isFinancialSupervisor = user?.role === "SUPERVISEUR";
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,6 +124,7 @@ export default function ReportsPage() {
   }, []);
 
   useEffect(() => {
+    if (isFinancialSupervisor) return;
     if (!accessToken) return;
     const loadCompanies = async (token: string) => {
       const res = await companyService.list(token, { page: 1, pageSize: 100 });
@@ -145,7 +147,14 @@ export default function ReportsPage() {
         }
       }
     });
-  }, [accessToken, dispatch, refreshToken]);
+  }, [accessToken, dispatch, isFinancialSupervisor, refreshToken]);
+
+  useEffect(() => {
+    if (!isFinancialSupervisor) return;
+    setReportFamily("financial");
+    setCompanyId("");
+    setChannel("ALL");
+  }, [isFinancialSupervisor]);
 
   useEffect(() => {
     if (exoneratedDisabled && financialMode === "EXONERATED") {
@@ -171,11 +180,11 @@ export default function ReportsPage() {
         date_from: dateFrom,
         date_to: dateTo,
         post_id: postId || undefined,
-        company_id: companyId || undefined,
+        company_id: isFinancialSupervisor ? undefined : (companyId || undefined),
         financial_mode:
           financialMode === "ALL" ? undefined : financialMode,
-        channel: channel === "ALL" ? undefined : channel,
-        family: reportFamily,
+        channel: isFinancialSupervisor ? undefined : (channel === "ALL" ? undefined : channel),
+        family: isFinancialSupervisor ? "financial" : reportFamily,
         limit,
       });
       setReceipts(res.data ?? []);
@@ -211,6 +220,7 @@ export default function ReportsPage() {
     dateTo,
     normalizeMetadata,
     dispatch,
+    isFinancialSupervisor,
     exoneratedDisabled,
     financialMode,
     limit,
@@ -224,13 +234,13 @@ export default function ReportsPage() {
     if (dateFrom) items.push(`Du ${dateFrom}`);
     if (dateTo) items.push(`Au ${dateTo}`);
     if (postId) items.push(`Poste ${postId}`);
-    if (companyId) {
+    if (companyId && !isFinancialSupervisor) {
       const company = companyOptions.find((item) => item.id === companyId);
       items.push(`Societe ${company?.name ?? companyId}`);
     }
     items.push(`Famille ${REPORT_FAMILY_LABELS[reportFamily]}`);
     if (financialMode !== "ALL") items.push(`Mode ${financialMode}`);
-    if (channel !== "ALL") items.push(`Canal ${CHANNEL_LABELS[channel]}`);
+    if (!isFinancialSupervisor && channel !== "ALL") items.push(`Canal ${CHANNEL_LABELS[channel]}`);
     items.push(`Limite ${limit}`);
     return items;
   }, [
@@ -240,6 +250,7 @@ export default function ReportsPage() {
     dateFrom,
     dateTo,
     financialMode,
+    isFinancialSupervisor,
     limit,
     postId,
     reportFamily,
@@ -271,40 +282,51 @@ export default function ReportsPage() {
                   <Label>Date fin</Label>
                   <DateFilterField value={dateTo} onChange={setDateTo} />
                 </div>
-                <div className="space-y-2">
-                  <Label>Type de rapport</Label>
-                  <Select
-                    value={reportFamily}
-                    onValueChange={(v) => setReportFamily(v as ReportFamily)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="financial">Rapport financier</SelectItem>
-                      <SelectItem value="passage">Rapport des passages</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Societe</Label>
-                  <Select
-                    value={companyId || "ALL"}
-                    onValueChange={(v) => setCompanyId(v === "ALL" ? "" : v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Toutes</SelectItem>
-                      {companyOptions.map((company) => (
-                        <SelectItem key={company.id} value={company.id}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!isFinancialSupervisor ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Type de rapport</Label>
+                      <Select
+                        value={reportFamily}
+                        onValueChange={(v) => setReportFamily(v as ReportFamily)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="financial">Rapport financier</SelectItem>
+                          <SelectItem value="passage">Rapport des passages</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Societe</Label>
+                      <Select
+                        value={companyId || "ALL"}
+                        onValueChange={(v) => setCompanyId(v === "ALL" ? "" : v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ALL">Toutes</SelectItem>
+                          {companyOptions.map((company) => (
+                            <SelectItem key={company.id} value={company.id}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Type de rapport</Label>
+                    <div className="flex h-10 items-center rounded-md border border-input bg-background px-3 text-sm text-foreground">
+                      Rapport financier par poste
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>{reportFamily === "financial" ? "Poste d'emission" : "Poste de passage"}</Label>
                   <Select
@@ -354,27 +376,29 @@ export default function ReportsPage() {
                     </p>
                   ) : null}
                 </div>
-                <div className="space-y-2">
-                  <Label>Canal</Label>
-                  <Select
-                    value={channel}
-                    onValueChange={(v) =>
-                      setChannel(v as ReceiptChannel | "ALL")
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">Tous</SelectItem>
-                      {RECEIPT_CHANNELS.map((value) => (
-                        <SelectItem key={value} value={value}>
-                          {CHANNEL_LABELS[value]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!isFinancialSupervisor && (
+                  <div className="space-y-2">
+                    <Label>Canal</Label>
+                    <Select
+                      value={channel}
+                      onValueChange={(v) =>
+                        setChannel(v as ReceiptChannel | "ALL")
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL">Tous</SelectItem>
+                        {RECEIPT_CHANNELS.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {CHANNEL_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-2 md:col-span-2 md:max-w-xs">
                   <Label>Limite</Label>
                   <Select

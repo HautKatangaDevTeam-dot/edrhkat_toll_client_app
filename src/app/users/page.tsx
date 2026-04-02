@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Eye,
   EyeOff,
+  PencilLine,
   Plus,
   RotateCcw,
   Search,
@@ -51,7 +52,7 @@ const ROLE_META: Record<AuthRole, { label: string; tone: string }> = {
       "border-primary/30 bg-primary/10 text-primary dark:text-primary",
   },
   SUPERVISEUR: {
-    label: "Superviseur",
+    label: "Superviseur financier",
     tone:
       "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200",
   },
@@ -80,6 +81,12 @@ export default function UsersPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserWithMeta | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editRole, setEditRole] = useState<AuthRole>("AGENT_TOLL");
+  const [editPost, setEditPost] = useState<AuthPost>("KAMPEMBA");
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   const [users, setUsers] = useState<UserWithMeta[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -106,6 +113,23 @@ export default function UsersPage() {
       }
     },
     [resetCreateUserForm]
+  );
+
+  const resetEditUserForm = useCallback(() => {
+    setEditingUser(null);
+    setEditUsername("");
+    setEditRole("AGENT_TOLL");
+    setEditPost("KAMPEMBA");
+  }, []);
+
+  const handleEditOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      setEditOpen(nextOpen);
+      if (!nextOpen) {
+        resetEditUserForm();
+      }
+    },
+    [resetEditUserForm]
   );
 
   const handleLogout = () => {
@@ -247,6 +271,59 @@ export default function UsersPage() {
     }
   }
 
+  const openEditModal = useCallback((target: UserWithMeta) => {
+    setEditingUser(target);
+    setEditUsername(target.username);
+    setEditRole(target.role);
+    setEditPost(target.post);
+    setEditOpen(true);
+  }, []);
+
+  async function handleUpdateUser(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingUser) return;
+
+    const tokenToUse = accessToken;
+    if (!tokenToUse) {
+      notify.error("Session expiree. Veuillez vous reconnecter.");
+      return;
+    }
+
+    setIsUpdatingUser(true);
+
+    const submit = async (token: string) =>
+      authService.updateUser(token, editingUser.id, {
+        username: editUsername.trim().toLowerCase(),
+        role: editRole,
+        post: editPost,
+      });
+
+    try {
+      try {
+        await submit(tokenToUse);
+      } catch (err) {
+        const isApiError = err instanceof ApiError;
+        if (isApiError && err.status === 401 && refreshToken) {
+          const refreshed = await dispatch(refreshSession()).unwrap();
+          if (!refreshed.accessToken) {
+            return;
+          }
+          await submit(refreshed.accessToken);
+        } else {
+          throw err;
+        }
+      }
+
+      notify.success("Utilisateur modifie avec succes.");
+      handleEditOpenChange(false);
+      await fetchUsers();
+    } catch (err) {
+      notify.fromError(err, "Impossible de modifier l'utilisateur.");
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  }
+
   return (
     <ProtectedLayout>
       <AppShell
@@ -257,6 +334,108 @@ export default function UsersPage() {
         onLogout={handleLogout}
       >
         <div className="flex min-h-full w-full flex-col gap-4">
+          <AppModal
+            open={editOpen}
+            onOpenChange={handleEditOpenChange}
+            size="lg"
+            eyebrow="Administration"
+            title={editingUser ? `Modifier ${editingUser.username}` : "Modifier l'utilisateur"}
+            description="Ajustez l'identifiant, le role et le poste depuis la fiche utilisateur."
+            bodyClassName="px-5 py-4"
+            footer={
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => handleEditOpenChange(false)}
+                >
+                  Fermer
+                </Button>
+                {editingUser ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={resettingUserId === editingUser.id}
+                    onClick={() => handleResetPassword(editingUser)}
+                  >
+                    <RotateCcw size={14} />
+                    {resettingUserId === editingUser.id ? "Reset..." : "Reset mdp"}
+                  </Button>
+                ) : null}
+                <Button
+                  form="edit-user-form"
+                  type="submit"
+                  disabled={isUpdatingUser || !editingUser}
+                >
+                  {isUpdatingUser ? "Mise a jour..." : "Enregistrer"}
+                </Button>
+              </>
+            }
+          >
+            <form
+              id="edit-user-form"
+              className="mx-auto w-full max-w-xl space-y-4"
+              onSubmit={handleUpdateUser}
+            >
+              <div className="grid gap-x-4 gap-y-4 md:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs normal-case tracking-normal">
+                    Identifiant
+                  </Label>
+                  <Input
+                    required
+                    value={editUsername}
+                    onChange={(e) => setEditUsername(e.target.value)}
+                    placeholder="prenom.nom"
+                    className="h-10"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs normal-case tracking-normal">
+                    Role
+                  </Label>
+                  <Select
+                    value={editRole}
+                    onValueChange={(value) => setEditRole(value as AuthRole)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selectionner un role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUTH_ROLES.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <Label className="text-xs normal-case tracking-normal">
+                    Poste
+                  </Label>
+                  <Select
+                    value={editPost}
+                    onValueChange={(value) => setEditPost(value as AuthPost)}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selectionner un poste" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUTH_POSTS.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </form>
+          </AppModal>
+
           <div className="flex justify-end">
             <AppModal
               open={open}
@@ -479,14 +658,20 @@ export default function UsersPage() {
                           <TableHead>Poste</TableHead>
                           <TableHead>Creation</TableHead>
                           <TableHead>Mise a jour</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {users.map((item) => (
-                          <TableRow key={item.id}>
+                          <TableRow
+                            key={item.id}
+                            className="cursor-pointer"
+                            onClick={() => openEditModal(item)}
+                          >
                             <TableCell className="font-semibold text-foreground">
-                              {item.username}
+                              <div className="flex items-center gap-2">
+                                <PencilLine size={14} className="text-muted-foreground" />
+                                <span>{item.username}</span>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <span
@@ -510,21 +695,6 @@ export default function UsersPage() {
                               {item.updatedAt
                                 ? new Date(item.updatedAt).toLocaleDateString()
                                 : "N/A"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                                disabled={resettingUserId === item.id}
-                                onClick={() => handleResetPassword(item)}
-                              >
-                                <RotateCcw size={14} />
-                                {resettingUserId === item.id
-                                  ? "Reset..."
-                                  : "Reset mdp"}
-                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
