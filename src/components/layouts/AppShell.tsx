@@ -46,11 +46,11 @@ const navItems: NavItem[] = [
 
 const navAccess: Record<string, AuthRole[]> = {
   "/": ["ADMIN_SYSTEME", "SUPERVISEUR", "AGENT_BUREAU", "AGENT_TOLL"],
-  "/reports": ["ADMIN_SYSTEME", "SUPERVISEUR"],
+  "/reports": ["ADMIN_SYSTEME"],
   "/companies": ["ADMIN_SYSTEME"],
   "/receipt-batches": ["ADMIN_SYSTEME", "AGENT_BUREAU"],
-  "/receipt-lookup": ["ADMIN_SYSTEME", "AGENT_BUREAU", "AGENT_TOLL"],
-  "/transactions": ["ADMIN_SYSTEME"],
+  "/receipt-lookup": ["ADMIN_SYSTEME", "SUPERVISEUR", "AGENT_BUREAU", "AGENT_TOLL"],
+  "/transactions": ["ADMIN_SYSTEME", "SUPERVISEUR"],
   "/pos-devices": ["ADMIN_SYSTEME"],
   "/monitoring": ["ADMIN_SYSTEME"],
   "/users": ["ADMIN_SYSTEME"],
