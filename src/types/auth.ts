@@ -64,6 +64,13 @@ export type UpdateUserResponse = {
   user: AuthUser;
 };
 
+export type UpdateUserRequest = {
+  username: string;
+  role: AuthRole;
+  post: AuthPost;
+  password?: string;
+};
+
 export type RefreshResponse = LoginResponse;
 
 export type MeResponse = {

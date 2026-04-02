@@ -86,6 +86,9 @@ export default function UsersPage() {
   const [editUsername, setEditUsername] = useState("");
   const [editRole, setEditRole] = useState<AuthRole>("AGENT_TOLL");
   const [editPost, setEditPost] = useState<AuthPost>("KAMPEMBA");
+  const [editPassword, setEditPassword] = useState("");
+  const [editPasswordConfirm, setEditPasswordConfirm] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   const [users, setUsers] = useState<UserWithMeta[]>([]);
@@ -120,6 +123,9 @@ export default function UsersPage() {
     setEditUsername("");
     setEditRole("AGENT_TOLL");
     setEditPost("KAMPEMBA");
+    setEditPassword("");
+    setEditPasswordConfirm("");
+    setShowEditPassword(false);
   }, []);
 
   const handleEditOpenChange = useCallback(
@@ -276,12 +282,19 @@ export default function UsersPage() {
     setEditUsername(target.username);
     setEditRole(target.role);
     setEditPost(target.post);
+    setEditPassword("");
+    setEditPasswordConfirm("");
+    setShowEditPassword(false);
     setEditOpen(true);
   }, []);
 
   async function handleUpdateUser(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editingUser) return;
+    if (editPassword && editPassword !== editPasswordConfirm) {
+      notify.error("La confirmation du mot de passe ne correspond pas.");
+      return;
+    }
 
     const tokenToUse = accessToken;
     if (!tokenToUse) {
@@ -296,6 +309,7 @@ export default function UsersPage() {
         username: editUsername.trim().toLowerCase(),
         role: editRole,
         post: editPost,
+        password: editPassword.trim() || undefined,
       });
 
     try {
@@ -340,7 +354,7 @@ export default function UsersPage() {
             size="lg"
             eyebrow="Administration"
             title={editingUser ? `Modifier ${editingUser.username}` : "Modifier l'utilisateur"}
-            description="Ajustez l'identifiant, le role et le poste depuis la fiche utilisateur."
+            description="Ajustez l'identifiant, le role, le poste et, si besoin, définissez un nouveau mot de passe."
             bodyClassName="px-5 py-4"
             footer={
               <>
@@ -431,6 +445,49 @@ export default function UsersPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs normal-case tracking-normal">
+                    Nouveau mot de passe
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      type={showEditPassword ? "text" : "password"}
+                      value={editPassword}
+                      onChange={(e) => setEditPassword(e.target.value)}
+                      placeholder="Laisser vide pour ne pas changer"
+                      autoComplete="new-password"
+                      maxLength={72}
+                      className="h-10 pr-12"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                      onClick={() => setShowEditPassword((prev) => !prev)}
+                      aria-label={
+                        showEditPassword
+                          ? "Masquer le mot de passe"
+                          : "Afficher le mot de passe"
+                      }
+                    >
+                      {showEditPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs normal-case tracking-normal">
+                    Confirmer le mot de passe
+                  </Label>
+                  <Input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editPasswordConfirm}
+                    onChange={(e) => setEditPasswordConfirm(e.target.value)}
+                    placeholder="Confirmer le nouveau mot de passe"
+                    autoComplete="new-password"
+                    maxLength={72}
+                    className="h-10"
+                  />
                 </div>
               </div>
             </form>

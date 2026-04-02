@@ -9,6 +9,7 @@ import type {
   RegisterRequest,
   RegisterResponse,
   ResetPasswordResponse,
+  UpdateUserRequest,
   UpdateUserResponse,
   UsersListResponse,
 } from "@/types/auth";
@@ -70,7 +71,7 @@ export const authService = {
   updateUser(
     accessToken: string,
     userId: string,
-    input: Pick<RegisterRequest, "username" | "role" | "post">
+    input: UpdateUserRequest
   ) {
     return apiRequest<UpdateUserResponse>({
       path: buildApiUrl(`/api/auth/users/${userId}`),
