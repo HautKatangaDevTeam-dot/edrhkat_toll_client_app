@@ -6,6 +6,14 @@ export type ReceiptFinancialMode = (typeof RECEIPT_FINANCIAL_MODES)[number];
 
 export type ReceiptStatus = "ISSUED" | "CONSUMED" | "CANCELLED" | "VOID";
 
+export const RECEIPT_BATCH_CORRECTION_MODES = [
+  "TRANSFER_ALL",
+  "MOVE_REMAINING",
+] as const;
+
+export type ReceiptBatchCorrectionMode =
+  (typeof RECEIPT_BATCH_CORRECTION_MODES)[number];
+
 export const RECEIPT_CHANNELS = [
   "COMPANY_BATCH",
   "SINGLE_TOLL",
@@ -99,6 +107,31 @@ export type ReceiptBatchConsumptionEvent = {
   createdAt: string;
 };
 
+export type ReceiptBatchCorrection = {
+  id: string;
+  sourceBatchId: string;
+  targetBatchId: string | null;
+  sourceBatchCode: string;
+  targetBatchCode: string | null;
+  sourceCompanyId: string;
+  sourceCompanyName: string | null;
+  sourceCompanyCode: string | null;
+  targetCompanyId: string;
+  targetCompanyName: string | null;
+  targetCompanyCode: string | null;
+  mode: ReceiptBatchCorrectionMode;
+  reason: string;
+  movedQuantity: number;
+  sourceQuantityBefore: number;
+  sourceQuantityAfter: number;
+  targetQuantityAfter: number | null;
+  actorUserId: string | null;
+  actorUsername: string | null;
+  actorRole: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
 export type ReceiptSummary = {
   batchCount: number;
   issuedCount: number;
@@ -122,6 +155,7 @@ export type ReceiptBatchDetailResponse = {
   success: boolean;
   batch: ReceiptBatch;
   events: ReceiptBatchConsumptionEvent[];
+  corrections?: ReceiptBatchCorrection[];
 };
 
 export type ReceiptBatchLookupResponse = {
@@ -143,4 +177,11 @@ export type ReceiptLookupResponse = {
   success: boolean;
   receipt: Receipt;
   events: ReceiptEvent[];
+};
+
+export type ReceiptBatchCorrectionResponse = {
+  success: boolean;
+  correction: ReceiptBatchCorrection;
+  sourceBatch: ReceiptBatch;
+  targetBatch: ReceiptBatch | null;
 };

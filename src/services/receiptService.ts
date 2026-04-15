@@ -1,6 +1,8 @@
 import { buildApiUrl, buildApiUrlObject } from "@/config/api";
 import { apiRequest } from "@/lib/http";
 import type {
+  ReceiptBatchCorrectionMode,
+  ReceiptBatchCorrectionResponse,
   ReceiptBatchDetailResponse,
   ReceiptBatchLookupResponse,
   ReceiptBatchListResponse,
@@ -44,6 +46,23 @@ export const receiptService = {
     return apiRequest<ReceiptBatchDetailResponse>({
       path: buildApiUrl(`/api/receipts/batches/${id}`),
       method: "GET",
+      accessToken,
+    });
+  },
+
+  correctBatchCompany(
+    accessToken: string,
+    id: string,
+    body: {
+      target_company_id: string;
+      mode: ReceiptBatchCorrectionMode;
+      reason: string;
+    }
+  ) {
+    return apiRequest<ReceiptBatchCorrectionResponse>({
+      path: buildApiUrl(`/api/receipts/batches/${id}/correct-company`),
+      method: "POST",
+      body,
       accessToken,
     });
   },
