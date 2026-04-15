@@ -367,6 +367,17 @@ export default function ReceiptBatchDetailPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                    Cree par
+                  </p>
+                  <p className="mt-1 font-semibold text-foreground">
+                    {batch.issuedByUsername ?? "Inconnu"}
+                  </p>
+                  {batch.issuedByRole ? (
+                    <p className="text-xs text-muted-foreground">{batch.issuedByRole}</p>
+                  ) : null}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
                     Quantite
                   </p>
                   <p className="mt-1 font-semibold text-foreground">
