@@ -47,6 +47,11 @@ import type {
 const PAGE_SIZE = 20;
 
 const amountFmt = (value: number) => formatCompactUsd(value);
+const dateTimeFmt = (value: string) =>
+  new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
 export default function ReceiptBatchDetailPage() {
   const params = useParams<{ id?: string }>();
@@ -350,6 +355,14 @@ export default function ReceiptBatchDetailPage() {
                   </p>
                   <p className="mt-1 font-semibold text-foreground">
                     {batch.remainingCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                    Cree le
+                  </p>
+                  <p className="mt-1 font-semibold text-foreground">
+                    {dateTimeFmt(batch.createdAt)}
                   </p>
                 </div>
                 <div>

@@ -44,6 +44,11 @@ import type {
 const PAGE_SIZE = 10;
 
 const amountFmt = (value: number) => formatCompactUsd(value);
+const dateTimeFmt = (value: string) =>
+  new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 
 export default function ReceiptBatchesPage() {
   const dispatch = useAppDispatch();
@@ -290,6 +295,7 @@ export default function ReceiptBatchesPage() {
                         <TableRow>
                           <TableHead>Societe</TableHead>
                           <TableHead>Code batch</TableHead>
+                          <TableHead>Cree le</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Mode</TableHead>
                           <TableHead>Quantite</TableHead>
@@ -319,6 +325,9 @@ export default function ReceiptBatchesPage() {
                             </TableCell>
                             <TableCell className="font-mono text-xs text-foreground">
                               {batch.batchShortCode}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {dateTimeFmt(batch.createdAt)}
                             </TableCell>
                             <TableCell>{batch.taxType}</TableCell>
                             <TableCell>{batch.financialMode}</TableCell>
