@@ -17,6 +17,8 @@ export type AuthPost =
   | "KABOLA"
   | "KYANDWE"
   | "SASE"
+  | "45 KM"
+  | "MIRINGI"
   | "DIRECTION_GENERALE";
 
 export type AuthUser = {

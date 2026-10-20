@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { AUTH_POSTS } from "@/constants/auth";
 
 import { DateFilterField } from "@/components/admin/DateFilterField";
 import { FilterBar } from "@/components/admin/FilterBar";
@@ -39,22 +40,6 @@ import {
   type TollPaymentMode,
   type TollTransaction,
 } from "@/types/transaction";
-
-const POSTS = [
-  "KAMPEMBA",
-  "MIKAS",
-  "DITENGWA",
-  "MENDA",
-  "MULUNGWISI",
-  "LWAMBO",
-  "LWISHA CENTRE",
-  "EXCELLENT",
-  "RTE SHEMAF",
-  "KABOLA",
-  "KYANDWE",
-  "SASE",
-  "DIRECTION_GENERALE",
-];
 
 export default function TransactionsPage() {
   const dispatch = useAppDispatch();
@@ -208,7 +193,7 @@ export default function TransactionsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ALL">Tous</SelectItem>
-                      {POSTS.map((p) => (
+                      {AUTH_POSTS.map((p) => (
                         <SelectItem key={p} value={p}>
                           {p}
                         </SelectItem>

@@ -20,5 +20,7 @@ export const AUTH_POSTS: AuthPost[] = [
   "KABOLA",
   "KYANDWE",
   "SASE",
+  "45 KM",
+  "MIRINGI",
   "DIRECTION_GENERALE",
 ];

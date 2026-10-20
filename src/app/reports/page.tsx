@@ -118,7 +118,7 @@ export default function ReportsPage() {
       );
     }
     if (nextMeta.posts?.length) {
-      setAvailablePosts(Array.from(new Set(nextMeta.posts)).sort());
+      setAvailablePosts(Array.from(new Set([...AUTH_POSTS, ...nextMeta.posts])).sort());
     }
     setMeta(nextMeta);
   }, []);
